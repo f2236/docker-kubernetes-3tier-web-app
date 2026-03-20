@@ -5,6 +5,8 @@ import Layout from './components/Layout';
 import TodoForm from './components/TodoForm';
 import TodoList from './components/TodoList';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
 function App() {
   const [todo, setTodo] = useState('');
   const [todoList, setTodoList] = useState([]);
@@ -24,7 +26,7 @@ function App() {
     handleCharactersError(todo);
 
     try {
-      await axios.post('https://todo-mysql-backend.herokuapp.com/create', {
+      await axios.post(`${API_BASE_URL}/create`, {
         todo,
       });
     } catch (err) {
@@ -35,7 +37,7 @@ function App() {
   const getAllTodos = async () => {
     try {
       await axios
-        .get('https://todo-mysql-backend.herokuapp.com/')
+        .get(`${API_BASE_URL}/`)
         .then((response) => {
           setTodoList(response.data);
         });
@@ -49,7 +51,7 @@ function App() {
 
     try {
       await axios
-        .put(`https://todo-mysql-backend.herokuapp.com/update/${id}`, {
+        .put(`${API_BASE_URL}/update/${id}`, {
           id,
           todo: newTodo,
         })
@@ -69,7 +71,7 @@ function App() {
   const deleteTodo = async (id) => {
     try {
       await axios
-        .delete(`https://todo-mysql-backend.herokuapp.com/${id}`)
+        .delete(`${API_BASE_URL}/${id}`)
         .then((response) => {
           setTodoList(todoList.filter((val) => val.id !== id));
         });

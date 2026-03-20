@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: todolist-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-todolist}
+      MYSQL_USER: ${DB_USER:-todouser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-todopassword}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - todolist-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+      interval: 10s
+
+  # Backend Service
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: todolist-backend
+    environment:
+      DB_HOST: mysql
+      DB_USER: ${DB_USER:-todouser}
+      DB_PASSWORD: ${DB_PASSWORD:-todopassword}
+      DB_NAME: ${DB_NAME:-todolist}
+      PORT: 8080
+      NODE_ENV: production
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - todolist-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      timeout: 5s
+      retries: 10
+      interval: 10s
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: todolist-frontend
+    environment:
+      REACT_APP_API_URL: http://backend:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - todolist-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  todolist-network:
+    driver: bridge
